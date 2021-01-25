@@ -1,56 +1,41 @@
 # Import libraries
 library(shiny)
 library(shinythemes)
-library(data.table)
-library(RCurl)
-library(randomForest)
+library(readr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+
 
 # Read data
-weather <- read.csv(text = getURL("https://raw.githubusercontent.com/dataprofessor/data/master/weather-weka.csv") )
+urlfile="https://raw.githubusercontent.com/jrobledob/Shiny-APP-Weather-CARIBIA/main/Data/weather.csv"
+weather<-read_csv2(url(urlfile), na = c("", "NA", "NULL"))
+weather$TiempoSys<- strptime(weather$TiempoSys,format='%d/%m/%Y %H:%M')
+weatherVariables<- colnames(weather[,5:ncol(weather)])
 
-# Build model
-model <- randomForest(play ~ ., data = weather, ntree = 500, mtry = 4, importance = TRUE)
 
-# Save model to RDS file
-# saveRDS(model, "model.rds")
-
-# Read in the RF model
-#model <- readRDS("model.rds")
-
-####################################
-# User interface                   #
-####################################
 
 ui <- fluidPage(theme = shinytheme("united"),
-                
                 # Page header
-                headerPanel('Play Golf?'),
-                
+                headerPanel('Clima C.I. Caribia'),
                 # Input values
                 sidebarPanel(
-                    HTML("<h3>Input parameters</h3>"),
-                    
-                    selectInput("outlook", label = "Outlook:", 
-                                choices = list("Sunny" = "sunny", "Overcast" = "overcast", "Rainy" = "rainy"), 
-                                selected = "Rainy"),
-                    sliderInput("temperature", "Temperature:",
-                                min = 64, max = 86,
-                                value = 70),
-                    sliderInput("humidity", "Humidity:",
-                                min = 65, max = 96,
-                                value = 90),
-                    selectInput("windy", label = "Windy:", 
-                                choices = list("Yes" = "TRUE", "No" = "FALSE"), 
-                                selected = "TRUE"),
-                    
-                    actionButton("submitbutton", "Submit", class = "btn btn-primary")
-                ),
-                
+                    HTML("<h3>Criterios de filtro</h3>"),
+                    selectInput("frequency", label = "Espacio de Tiempo:", 
+                                choices = list("Cada Hora" = "hour",
+                                               "Diario" = "day",
+                                               "Semanal"="week",
+                                               "Mensual" = "month",
+                                               "Bimensual"="bimonth",
+                                               "Trimestral" ="quarter",
+                                               "Semestral" = "halfyear", 
+                                               "Anual"= "year"), 
+                                selected = "Cada Hora"),
+                    selectInput("variable", label = "Variable", weatherVariables,
+                                selected = weatherVariables[1])),
                 mainPanel(
-                    tags$label(h3('Status/Output')), # Status/Output Text Box
-                    verbatimTextOutput('contents'),
-                    tableOutput('tabledata') # Prediction results table
-                    
+                    plotOutput('plot1')
                 )
 )
 
@@ -60,52 +45,28 @@ ui <- fluidPage(theme = shinytheme("united"),
 
 server <- function(input, output, session) {
     
-    # Input Data
-    datasetInput <- reactive({  
-        
-        # outlook,temperature,humidity,windy,play
-        df <- data.frame(
-            Name = c("outlook",
-                     "temperature",
-                     "humidity",
-                     "windy"),
-            Value = as.character(c(input$outlook,
-                                   input$temperature,
-                                   input$humidity,
-                                   input$windy)),
-            stringsAsFactors = FALSE)
-        
-        play <- "play"
-        df <- rbind(df, play)
-        input <- transpose(df)
-        write.table(input,"input.csv", sep=",", quote = FALSE, row.names = FALSE, col.names = FALSE)
-        
-        test <- read.csv(paste("input", ".csv", sep=""), header = TRUE)
-        
-        test$outlook <- factor(test$outlook, levels = c("overcast", "rainy", "sunny"))
-        
-        
-        Output <- data.frame(Prediction=predict(model,test), round(predict(model,test,type="prob"), 3))
-        print(Output)
-        
+    
+    selectedData <- reactive({
+        weather1<- weather %>%
+            group_by(Date = floor_date(TiempoSys, input$frequency)) %>%
+            summarize_at(.vars = input$variable, .funs = mean)
+        weather1$Date<- as.POSIXct(weather1$Date)
+        print(weather1)
+        weather1
     })
     
-    # Status/Output Text Box
-    output$contents <- renderPrint({
-        if (input$submitbutton>0) { 
-            isolate("Calculation complete.") 
-        } else {
-            return("Server is ready for calculation.")
-        }
+    output$plot1 <- renderPlot({
+            ggplot(selectedData(),aes(x = Date,y = get(input$variable))) + 
+                geom_point(aes(colour = get(input$variable))) +
+                scale_colour_gradient2(low = "blue", mid = "green" , high = "red", midpoint = median(unlist(selectedData()[,which(colnames(selectedData())==input$variable)]))) + 
+                geom_smooth(color = "red",size = 1) +
+                scale_y_continuous(limits = c(min(unlist(selectedData()[,which(colnames(selectedData())==input$variable)])),max(unlist(selectedData()[,which(colnames(selectedData())==input$variable)])))) +
+                ggtitle (paste("average temperature by",input$frequency)) +
+                xlab("Date") +  ylab ("Average Temperature ( ºC )")
     })
     
-    # Prediction results table
-    output$tabledata <- renderTable({
-        if (input$submitbutton>0) { 
-            isolate(datasetInput()) 
-        } 
-    })
     
+
 }
 
 ####################################
