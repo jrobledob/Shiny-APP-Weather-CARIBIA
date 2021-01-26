@@ -22,6 +22,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                 # Input values
                 sidebarPanel(
                     HTML("<h3>Criterios de filtro</h3>"),
+                    dateInput("initial_date", label = ("Fecha de inicio"), value = "2014-01-01"),
+                    dateInput("final_date", label = ("Fecha de terminación"), value = "2015-01-01"),
                     selectInput("frequency", label = "Espacio de Tiempo:", 
                                 choices = list("Cada Hora" = "hour",
                                                "Diario" = "day",
@@ -33,7 +35,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                "Anual"= "year"), 
                                 selected = "Cada Hora"),
                     selectInput("variable", label = "Variable", weatherVariables,
-                                selected = weatherVariables[1])),
+                                selected = weatherVariables[1]),
+                    downloadLink('downloadPlot', 'Descargar Gráfica')),
                 mainPanel(
                     plotOutput('plot1')
                 )
@@ -45,7 +48,6 @@ ui <- fluidPage(theme = shinytheme("united"),
 
 server <- function(input, output, session) {
     
-    
     selectedData <- reactive({
         weather1<- weather %>%
             group_by(Date = floor_date(TiempoSys, input$frequency)) %>%
@@ -55,18 +57,32 @@ server <- function(input, output, session) {
         weather1
     })
     
-    output$plot1 <- renderPlot({
-            ggplot(selectedData(),aes(x = Date,y = get(input$variable))) + 
-                geom_point(aes(colour = get(input$variable))) +
-                scale_colour_gradient2(low = "blue", mid = "green" , high = "red", midpoint = median(unlist(selectedData()[,which(colnames(selectedData())==input$variable)]))) + 
-                geom_smooth(color = "red",size = 1) +
-                scale_y_continuous(limits = c(min(unlist(selectedData()[,which(colnames(selectedData())==input$variable)])),max(unlist(selectedData()[,which(colnames(selectedData())==input$variable)])))) +
-                ggtitle (paste("average temperature by",input$frequency)) +
-                xlab("Date") +  ylab ("Average Temperature ( ºC )")
+    figure<- reactive({
+        ggplot(selectedData(),aes(x = Date,y = get(input$variable))) + 
+            geom_point(aes(colour = get(input$variable))) +
+            scale_colour_gradient2(low = "blue", mid = "green" , high = "red", midpoint = median(unlist(selectedData()[,which(colnames(selectedData())==input$variable)]))) + 
+            geom_smooth(color = "red",size = 1) +
+            scale_y_continuous(limits = c(min(unlist(selectedData()[,which(colnames(selectedData())==input$variable)])),max(unlist(selectedData()[,which(colnames(selectedData())==input$variable)])))) +
+            ggtitle (paste("average temperature by",input$frequency)) +
+            xlab("Date") +  ylab ("Average Temperature ( ºC )")
     })
     
+    output$plot1 <- renderPlot({
+        figure()
+    })
     
-
+    output$downloadPlot <- downloadHandler(
+          filename = function() {
+            paste('data-', Sys.Date(), '.pdf', sep='')
+          },
+          content = function(file) {
+              pdf(file)
+              print(figure())
+              dev.off()
+          }
+        )
+    
+    
 }
 
 ####################################
