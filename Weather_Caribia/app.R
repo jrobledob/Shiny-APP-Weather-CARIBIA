@@ -49,6 +49,7 @@ ui <- fluidPage(theme = shinytheme("united"),
 server <- function(input, output, session) {
     
     selectedData <- reactive({
+        
         weather1<- weather %>%
             group_by(Date = floor_date(TiempoSys, input$frequency)) %>%
             summarize_at(.vars = input$variable, .funs = mean)
