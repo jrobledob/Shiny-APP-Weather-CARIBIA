@@ -240,3 +240,38 @@ colnames(WDB2017)<-  c("Fecha", "Temperatura (°C)", "Máxima temperatura (°C)"
                        "Wind.Tx", "ISS.Recept", "Arc..Int.")
 
 DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2017)
+
+#Cleaning 2018----
+#Delete non-importatn columns
+#Reading Data
+WDB2018<- read.csv2("./Data/Raw_Data/2018.csv")
+WDB2018<- WDB2018[,-c(1,2)]
+#Introduce correct input in absent values 
+WDB2018[WDB2018=="---"]<- "NA"
+WDB2018[WDB2018==""]<- "NA"
+#Reformat numeric variables (which are characters) to numbers
+numeric_variables<- c("Temp.externa..Â.C.", "Max.temp..Â.C.", "Min.Temp..Â.C.", 
+                      "HR..Ext", "Punto.Rocio", "Velocidad.Viento..m.s.", 
+                      "Wind.Run", "Hi.Speed", "Wind.Chill", "Heat.Index", 
+                      "THW.Index", "THSW.Index", "Presion.Bar..milibar.", "LLUVIA..mm.", 
+                      "tasa.lluvia", "Radiacion.Solar..W.m2.", "EnergÃ.a.Solar..langleys.", 
+                      "Hi.Solar.Rad", "UV.Index", "UV.Dose", "Hi.UV", "Heat.D.D", "Cool.D.D", 
+                      "Temp..interior", "HR..int", "Punto.Rocio.int", "Heat.index.int", 
+                      "EMC", "In.Air.Density", "ET..mm.", "Wind.Samp", "Wind.TX", "ISS.Recept", 
+                      "Arc.Int")
+for (i in 1:length(numeric_variables)) {
+  WDB2018[,numeric_variables[i]]<- gsub(",",".",WDB2018[,numeric_variables[i]])
+  WDB2018[,numeric_variables[i]]<- as.numeric(WDB2018[,numeric_variables[i]])
+}
+#Reformat date and time (which are characters) to POSIXct
+WDB2018$Fecha<- as.character(interaction(WDB2018$Fecha, WDB2018$Hora, sep = " "))
+WDB2018<- WDB2018[,-2]
+WDB2018$Fecha<- parse_date_time(WDB2018$Fecha,"%d/%m/%Y %H:%M:%S")
+colnames(WDB2018)<-  c("Fecha", "Temperatura (°C)", "Máxima temperatura (°C)", "Mínima temperatura (°C)", "Humedad Relativa (%)", "Punto de Rocío (°C)", 
+                       "Velocidad del Viento (m/s)", "Dirección del viento", "Monto de viento (Km)", "Velocidad del viento mas alta (m/s)", 
+                       "Dirección del viento predominante", "Sensación térmica", "Índice de calor", "Índice THW", "Índice THSW", 
+                       "Presión Barométrica (mBar)", "Lluvia (mm)","Intensidad de la lluvia (mm/h)", "Radiación solar (Watts/m2)", "Energía Solar (Langleys)", "Radiación solar máxima (Watts/m2)", "Índice UV", 
+                       "Dosis de Radiación UV", "UV máxima", "Grados día de Calor", "Grados día de enfriamiento", "Temperatura interna (°C)", "Humedad relativa interna (%)", 
+                       "Punto de rocio en el interior (°C)", "Índice de calor en el interior", "In.EMC", "In.Air.Density", "ET", "Wind.Samp", 
+                       "Wind.Tx", "ISS.Recept", "Arc..Int.")
+DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2018)
