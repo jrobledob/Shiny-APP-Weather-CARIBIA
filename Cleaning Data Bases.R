@@ -275,3 +275,50 @@ colnames(WDB2018)<-  c("Fecha", "Temperatura (°C)", "Máxima temperatura (°C)"
                        "Punto de rocio en el interior (°C)", "Índice de calor en el interior", "In.EMC", "In.Air.Density", "ET", "Wind.Samp", 
                        "Wind.Tx", "ISS.Recept", "Arc..Int.")
 DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2018)
+
+
+
+
+
+
+#Cleaning 2019_1----
+#Delete non-importatn columns
+#Reading Data
+WDB2019_1<- read.csv2("./Data/Raw_Data/2019_1.csv", encoding= "UTF-8")
+WDB2019_1<- WDB2019_1[-c(1:2),]
+colnames(WDB2019_1)<- WDB2019_1[1,]
+WDB2019_1<- WDB2019_1[-c(1),]
+#Introduce correct input in absent values 
+WDB2019_1[WDB2019_1=="---"]<- "NA"
+WDB2019_1[WDB2019_1==""]<- "NA"
+WDB2019_1[WDB2019_1=="--"]<- "NA"
+WDB2019_1$`&`<- as.character(interaction(WDB2019_1$`&`, WDB2019_1$Time, sep = " "))
+WDB2019_1<- WDB2019_1[,-3]
+WDB2019_1$Date<- as.character(interaction(WDB2019_1$Date, WDB2019_1$`&`, sep = " "))
+WDB2019_1<- WDB2019_1[,-2]
+WDB2019_1$Date<- parse_date_time(WDB2019_1$Date,"%d/%m/%Y %I:%M %p")
+#Reformat numeric variables (which are characters) to numbers
+numeric_variables<- c("Temp ", "Temp alta ", "Temp. Baja ", 
+                      "Hum ", "Punto de rocio ", "Wet Bulb ", "Velocidad del viento - m/s", 
+                      "Viento Corriente", "Alta velocidad del viento", 
+                      "Viento Frio", "Indice de calor", 
+                      "THW Index ", "THSW  indice", "Barometro", "Lluvia", "Tasa de lluvia", 
+                      "Rad Solar ", "Energia solar", "Rad Solar Alta ", "ET - mm", 
+                      "El indice UV - Index", "Dosis de UV", "Alto indice UV", "Dias-grado de calentamiento", 
+                      "Dias-grado de enfriamiento")
+for (i in 1:length(numeric_variables)) {
+  WDB2019_1[,numeric_variables[i]]<- gsub(",",".",WDB2019_1[,numeric_variables[i]])
+  WDB2019_1[,numeric_variables[i]]<- as.numeric(WDB2019_1[,numeric_variables[i]])
+}
+WDB2019_1<- WDB2019_1[,-which(colnames(WDB2019_1)=="Wet Bulb ")]
+WDB2019_1<- WDB2019_1[,-which(colnames(WDB2019_1)=="Viento Frio")]
+
+#Reformat date and time (which are characters) to POSIXct
+colnames(WDB2019_1)<-  c("Fecha", "ISS.Recept", "Temperatura (°C)", "Máxima temperatura (°C)", "Mínima temperatura (°C)", "Humedad Relativa (%)", "Punto de Rocío (°C)", 
+                         "Velocidad del Viento (m/s)", "Dirección del viento", "Monto de viento (Km)", "Velocidad del viento mas alta (m/s)", 
+                         "Dirección del viento predominante", "Índice de calor", "Índice THW", "Índice THSW", 
+                         "Presión Barométrica (mBar)", "Lluvia (mm)","Intensidad de la lluvia (mm/h)", "Radiación solar (Watts/m2)", "Energía Solar (Langleys)", "Radiación solar máxima (Watts/m2)",
+                         "ET", "Índice UV", "Dosis de Radiación UV", "UV máxima", "Grados día de Calor", "Grados día de enfriamiento") 
+DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2019_1)
+
+
