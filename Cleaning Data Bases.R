@@ -509,5 +509,83 @@ DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2020_4)
 
 
 
+#Cleaning 2021_01----
+#Delete non-importatn columns
+#Reading Data
+WDB2021_01<- read.csv2("./Data/Raw_Data/2021_01.csv")
+WDB2021_01<- WDB2021_01[-c(1:4),]
+colnames(WDB2021_01)<- WDB2021_01[1,]
+WDB2021_01<- WDB2021_01[-c(1),]
+
+#Introduce correct input in absent values 
+WDB2021_01[WDB2021_01=="---"]<- "NA"
+WDB2021_01[WDB2021_01=="--"]<- "NA"
+WDB2021_01[WDB2021_01=="------"]<- "NA"
+WDB2021_01[WDB2021_01==""]<- "NA"
+
+#Reformat numeric variables (which are characters) to numbers
+numeric_variables<- c("Barometer - mm Hg", "Temp - Â°C", "High Temp - Â°C", 
+                      "Low Temp - Â°C", "Hum - %", "Dew Point - Â°C", "Wet Bulb - Â°C", 
+                      "Wind Speed - m/s", "Wind Run - m", "High Wind Speed - m/s", 
+                      "Wind Chill - Â°C", "Heat Index - Â°C", 
+                      "THW Index - Â°C", "THSW Index - Â°C", "Rain - mm", "Rain Rate - mm/h", 
+                      "Solar Rad - W/m^2", "Solar Energy - Ly", "High Solar Rad - W/m^2", 
+                      "ET - mm", "UV Index", "UV Dose - MEDs", "High UV Index", "Heating Degree Days", 
+                      "Cooling Degree Days")
+for (i in 1:length(numeric_variables)) {
+  WDB2021_01[,numeric_variables[i]]<- gsub(",",".",WDB2021_01[,numeric_variables[i]])
+  WDB2021_01[,numeric_variables[i]]<- as.numeric(WDB2021_01[,numeric_variables[i]])
+}
+#Reformat date and time (which are characters) to POSIXct
+
+WDB2021_01$`&`<- as.character(interaction(WDB2021_01$`&`, WDB2021_01$Time, sep = " "))
+WDB2021_01<- WDB2021_01[,-3]
+WDB2021_01$Date<- as.character(interaction(WDB2021_01$Date, WDB2021_01$`&`, sep = " "))
+WDB2021_01<- WDB2021_01[,-2]
+WDB2021_01$Date<- parse_date_time(WDB2021_01$Date,"%d/%m/%Y %I:%M %p")
+colnames(WDB2021_01)<- c("Fecha", "Presión Barométrica (mBar)","Temperatura (°C)", "Máxima temperatura (°C)", "Mínima temperatura (°C)", "Humedad Relativa (%)", "Punto de Rocío (°C)", 
+                         "Bulbo Húmedeo (°C)", "Velocidad del Viento (m/s)", "Dirección del viento", "Monto de viento (Km)", "Velocidad del viento mas alta (m/s)", 
+                         "Dirección del viento predominante","Sensación térmica", "Índice de calor", "Índice THW", "Índice THSW", 
+                         "Lluvia (mm)", "Intensidad de la lluvia (mm/h)", "Radiación solar (Watts/m2)", "Energía Solar (Langleys)", "Radiación solar máxima (Watts/m2)", "ET", "Índice UV", 
+                         "Dosis de Radiación UV", "UV máxima", "Grados día de Calor", "Grados día de enfriamiento")
+WDB2021_01$`Dirección del viento`<- dir[WDB2021_01$`Dirección del viento`]
+WDB2021_01$`Dirección del viento predominante`<- dir[WDB2021_01$`Dirección del viento predominante`]
+WDB2021_01$`Presión Barométrica (mBar)`<- WDB2021_01$`Presión Barométrica (mBar)`*1.33322
+
+
+DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2021_01)
+
+#----
+
 
 write.csv2(DB_weather_Caribia, "./Data/weather.csv", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+weather1<- weather %>%
+  group_by(Date = floor_date(Fecha, input$frequency)) %>%
+  summarize_at(.vars = input$variable, .funs = mean)
+weather1$Date<- as.POSIXct(weather1$Date)
+
+
+
+
+
+
+
+
+
+
