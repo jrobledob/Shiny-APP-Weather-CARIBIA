@@ -508,3 +508,6 @@ DB_weather_Caribia<- rbind.fill(DB_weather_Caribia,WDB2020_4)
 
 
 
+
+
+write.csv2(DB_weather_Caribia, "./Data/weather.csv", row.names = FALSE)
